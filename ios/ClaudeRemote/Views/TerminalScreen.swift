@@ -12,8 +12,10 @@ struct TerminalScreen: UIViewRepresentable {
         let tv = LocalTerminalView()
         tv.terminalDelegate = context.coordinator
         // 品牌深色终端背景（#141413）+ 浅色前景（#faf9f5）
-        tv.backgroundColor = UIColor(Color.brandDark)
-        tv.foregroundColor = UIColor(Color.brandLight)
+        // SwiftTerm 的属性是 nativeBackgroundColor/nativeForegroundColor
+        // （会反映到 terminal.backgroundColor/foregroundColor）。
+        tv.nativeBackgroundColor = UIColor(Color.brandDark)
+        tv.nativeForegroundColor = UIColor(Color.brandLight)
         outputBridge.terminalView = tv
         return tv
     }
