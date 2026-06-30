@@ -1,0 +1,59 @@
+name: Build iOS IPA
+
+on:
+  push:
+    tags: ['v*']
+    branches: [master, main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode 15
+        run: sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
+      - name: Run iOS unit tests
+        working-directory: ios
+        run: swift test
+
+  build:
+    needs: test
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode 15
+        run: sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
+      - name: Install xcodegen
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        working-directory: ios
+        run: xcodegen generate --spec project.yml
+      - name: Build app
+        working-directory: ios
+        run: |
+          xcodebuild \
+            -project ClaudeRemote.xcodeproj \
+            -scheme ClaudeRemote \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            -destination "generic/platform=iOS"
+      - name: Package IPA
+        run: |
+          APP_PATH="ios/build/Build/Products/Release-iphoneos/ClaudeRemote.app"
+          ./ios/scripts/package-ipa.sh "$APP_PATH" ClaudeRemote.ipa
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ClaudeRemote-ipa
+          path: ClaudeRemote.ipa
+          if-no-files-found: error
+      - name: Attach IPA to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ClaudeRemote.ipa
