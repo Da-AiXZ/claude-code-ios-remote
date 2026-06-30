@@ -49,6 +49,11 @@ struct TerminalScreen: UIViewRepresentable {
         func requestOpenLink(source: TerminalView, link: String, params: [String: String]) {}
         func bell(source: TerminalView) {}
         func rangeChanged(source: TerminalView, startY: Int, endY: Int) {}
+
+        // OSC 52 剪贴板相关：远端 Claude Code 不需要操作本机剪贴板，给空/nil 实现。
+        func clipboardCopy(source: TerminalView, content: Data) {}
+        func clipboardRead(source: TerminalView) -> Data? { nil }
+        func iTermContent(source: TerminalView, content: ArraySlice<UInt8>) {}
     }
 }
 
