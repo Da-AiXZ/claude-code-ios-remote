@@ -8,22 +8,19 @@ on:
 
 jobs:
   test:
-    runs-on: macos-14
+    # macos-15 runner 默认 Xcode 16，原生内置 Swift Testing 框架（import Testing）。
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
-      - name: Select Xcode 15
-        run: sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
       - name: Run iOS unit tests
         working-directory: ios
         run: swift test
 
   build:
     needs: test
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
-      - name: Select Xcode 15
-        run: sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
       - name: Install xcodegen
         run: brew install xcodegen
       - name: Generate Xcode project
