@@ -72,11 +72,17 @@ export function connectBridge({ host, port, command, args = [], cwd, reconnectDe
   };
 }
 
-// CLI 入口：node src/bridge.js <host> <port> [claude-command]
+// CLI 入口：node src/bridge.js <host> <port> [command...]
+// command 可以是单命令名（如 claude），也可以是带参数的完整命令字符串
+// （如 "ccr code --dangerously-skip-permissions"），会按空格拆成 command + args。
 if (import.meta.url === `file://${process.argv[1]}`) {
   const host = process.argv[2] || '127.0.0.1';
   const port = parseInt(process.argv[3] || '8080', 10);
-  const command = process.env.CLAUDE_PATH || process.argv[4] || 'claude';
-  console.log(`[bridge] starting → ${host}:${port}, command=${command}`);
-  connectBridge({ host, port, command, args: [], cwd: process.env.HOME });
+  // 支持环境变量 CLAUDE_PATH 覆盖，也支持 argv[4..] 拼接（允许命令带空格参数）
+  const rawCommand = process.env.CLAUDE_PATH || process.argv.slice(4).join(' ') || 'claude';
+  const parts = rawCommand.split(/\s+/).filter(Boolean);
+  const command = parts[0];
+  const args = parts.slice(1);
+  console.log(`[bridge] starting → ${host}:${port}, command=${command}, args=[${args.join(', ')}]`);
+  connectBridge({ host, port, command, args, cwd: process.env.HOME });
 }
