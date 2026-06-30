@@ -14,9 +14,9 @@ struct TerminalScreen: UIViewRepresentable {
     }
 
     func updateUIView(_ uiView: LocalTerminalView, context: Context) {
-        // 排空待处理字节
+        // 排空待处理字节。SwiftTerm 的 feed(byteArray:) 期望 ArraySlice<UInt8>。
         while let chunk = feed() {
-            uiView.feed(byteArray: Array(chunk))
+            uiView.feed(byteArray: ArraySlice(chunk))
         }
     }
 
@@ -33,7 +33,8 @@ struct TerminalScreen: UIViewRepresentable {
             self.onResize = onResize
         }
 
-        func send(_ source: TerminalView, data: [UInt8]) {
+        // 协议必需方法：用户键盘输入转发给 bridge。data 是 ArraySlice<UInt8>。
+        func send(source: TerminalView, data: ArraySlice<UInt8>) {
             onInput(Data(data))
         }
 
@@ -43,6 +44,11 @@ struct TerminalScreen: UIViewRepresentable {
             onResize(newCols, newRows)
         }
         func hostCurrentDirectoryUpdate(source: TerminalView, directory: String?) {}
+
+        // 协议其余必需方法：当前不需要处理，给空实现以满足协议一致性。
+        func requestOpenLink(source: TerminalView, link: String, params: [String: String]) {}
+        func bell(source: TerminalView) {}
+        func rangeChanged(source: TerminalView, startY: Int, endY: Int) {}
     }
 }
 
@@ -54,7 +60,7 @@ final class LocalTerminalView: TerminalView {
         super.layoutSubviews()
         if let feed = feedBuffer {
             while let chunk = feed() {
-                self.feed(byteArray: Array(chunk))
+                self.feed(byteArray: ArraySlice(chunk))
             }
         }
     }
