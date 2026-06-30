@@ -7,7 +7,8 @@
     "test": "test"
   },
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "start": "node src/bridge.js"
   },
   "keywords": [],
   "author": "",
