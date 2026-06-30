@@ -11,7 +11,13 @@ import Foundation
     @Test func start用配置端口启动服务器() throws {
         let s = TerminalSession(port: 19090)
         s.start()
-        #expect(s.phase == .starting || s.phase == .listening)
+        // .listening 带关联值（address: String），不能用 == .listening 比较，用 switch 模式匹配。
+        let ok: Bool
+        switch s.phase {
+        case .starting, .listening: ok = true
+        default: ok = false
+        }
+        #expect(ok)
         s.stop()
     }
 
