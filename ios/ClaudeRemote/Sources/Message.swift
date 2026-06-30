@@ -22,9 +22,11 @@ final class ParseContext {
 extension BridgeMessage {
     static func encode(_ msg: BridgeMessage) throws -> Data {
         let encoder = JSONEncoder()
-        // 不用 .sortedKeys：让字段按 BridgeMessage 属性声明顺序输出（type, version, cols, rows, data, ...），
-        // 与协议示例和测试期望一致；JSON 语义上字段无序，但保持稳定顺序便于调试和断言。
-        encoder.outputFormatting = .withoutEscapingSlashes
+        // 用 .sortedKeys 保证字段顺序稳定（字母序）。
+        // Foundation 的 JSONEncoder 内部用 Dictionary 存储，不加 .sortedKeys 时遍历顺序不确定，
+        // 会导致同一消息每次编码的字节序列不同，无法稳定断言和做字节级比对。
+        // JSON 语义上字段无序，bridge.js 端 JSON.parse 也不依赖顺序，所以字母序不影响功能。
+        encoder.outputFormatting = [.withoutEscapingSlashes, .sortedKeys]
         var data = try encoder.encode(msg)
         data.append(0x0A) // \n
         return data

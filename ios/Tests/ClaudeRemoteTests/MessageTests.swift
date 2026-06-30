@@ -7,7 +7,8 @@ import Foundation
         let msg = BridgeMessage(type: .hello, version: "1.0.0", cols: 80, rows: 24)
         let data = try BridgeMessage.encode(msg)
         let s = String(data: data, encoding: .utf8)
-        #expect(s == #"{"type":"hello","version":"1.0.0","cols":80,"rows":24}"# + "\n")
+        // .sortedKeys → 字母序：cols, rows, type, version
+        #expect(s == #"{"cols":80,"rows":24,"type":"hello","version":"1.0.0"}"# + "\n")
     }
 
     @Test func 编码output消息() throws {
@@ -15,7 +16,8 @@ import Foundation
         let msg = BridgeMessage(type: .output, data: bytes)
         let data = try BridgeMessage.encode(msg)
         let s = String(data: data, encoding: .utf8)
-        #expect(s == #"{"type":"output","data":"aGk="}"# + "\n")
+        // .sortedKeys → 字母序：data, type
+        #expect(s == #"{"data":"aGk=","type":"output"}"# + "\n")
     }
 
     @Test func 解码input消息() throws {
