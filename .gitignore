@@ -1,0 +1,18 @@
+# Node
+node_modules/
+npm-debug.log*
+
+# Swift / Xcode
+.build/
+.swiftpm/
+build/
+DerivedData/
+*.xcodeproj/
+Package.resolved
+
+# macOS
+.DS_Store
+
+# 构建产物
+*.ipa
+*.app/
