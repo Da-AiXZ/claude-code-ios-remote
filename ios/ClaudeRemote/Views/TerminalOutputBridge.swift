@@ -10,12 +10,18 @@ final class TerminalOutputBridge {
     /// terminalView 由 SwiftUI 的 UIViewRepresentable 管理 lifecycle。
     weak var terminalView: LocalTerminalView?
 
-    /// 由 TerminalSession.onOutput 调用。调用方保证在主线程（TerminalServer 的
-    /// onMessage 已 dispatch 到 main）。
+    /// 由 TerminalSession.onOutput 调用。
+    /// 注意：TerminalServer 的 onMessage 回调在后台串行队列
+    /// (DispatchQueue("com.clauderemote.server"))，不是主线程！
+    /// 而 tv.feed(byteArray:) 是 UIKit 操作，必须在主线程执行，
+    /// 否则 setNeedsDisplay 不生效、buffer 和渲染状态不一致，
+    /// 导致删字不刷新、重影、渲染错乱。必须 dispatch 到主线程。
     func feed(_ data: Data) {
-        guard let tv = terminalView else { return }
-        // SwiftTerm 的 feed(byteArray:) 期望 ArraySlice<UInt8>，会增量解析并触发重绘。
-        tv.feed(byteArray: ArraySlice(data))
+        DispatchQueue.main.async { [weak self] in
+            guard let self, let tv = self.terminalView else { return }
+            // SwiftTerm 的 feed(byteArray:) 期望 ArraySlice<UInt8>，会增量解析并触发重绘。
+            tv.feed(byteArray: ArraySlice(data))
+        }
     }
 
     /// bridge 重连或 session 重启时清空终端历史，避免旧内容残留。
