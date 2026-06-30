@@ -3,7 +3,8 @@ set -euo pipefail
 
 # 用法：package-ipa.sh <.app路径> <输出ipa路径>
 APP_PATH="$1"
-OUT_IPA="$2"
+# 转绝对路径：后续会在子 shell 里 cd 到临时目录打包，相对路径会失效（IPA 会生成到临时目录被 trap 删除）。
+OUT_IPA="$(cd "$(dirname "$2")" && pwd)/$(basename "$2")"
 
 if [ ! -d "$APP_PATH" ]; then
   echo "ERROR: .app not found at $APP_PATH" >&2
