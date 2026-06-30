@@ -4,20 +4,21 @@ import SwiftTerm
 struct TerminalScreen: UIViewRepresentable {
     let onInput: (Data) -> Void
     let onResize: (Int, Int) -> Void
-    let feed: () -> Data?  // 返回自上次调用以来待投喂的字节
+    /// 推送模式桥接：makeUIView 时把 terminalView 弱引用挂到 bridge 上，
+    /// 之后 TerminalSession.onOutput → bridge.feed → terminalView.feed 直达，
+    /// 不再靠 SwiftUI 重渲染或 layoutSubviews 主动 drain。
+    let outputBridge: TerminalOutputBridge
 
     func makeUIView(context: Context) -> LocalTerminalView {
         let tv = LocalTerminalView()
         tv.terminalDelegate = context.coordinator
-        tv.feedBuffer = feed
+        outputBridge.terminalView = tv
         return tv
     }
 
     func updateUIView(_ uiView: LocalTerminalView, context: Context) {
-        // 排空待处理字节。SwiftTerm 的 feed(byteArray:) 期望 ArraySlice<UInt8>。
-        while let chunk = feed() {
-            uiView.feed(byteArray: ArraySlice(chunk))
-        }
+        // 推送模式下，output 由 TerminalOutputBridge.feed 直接推送，
+        // 这里不做任何 feed 操作，避免重复 feed 导致重影。
     }
 
     func makeCoordinator() -> Coordinator {
@@ -57,16 +58,6 @@ struct TerminalScreen: UIViewRepresentable {
     }
 }
 
-/// 子类：暴露 feed buffer 给 SwiftUI 更新使用。
-final class LocalTerminalView: TerminalView {
-    var feedBuffer: (() -> Data?)?
-
-    override func layoutSubviews() {
-        super.layoutSubviews()
-        if let feed = feedBuffer {
-            while let chunk = feed() {
-                self.feed(byteArray: ArraySlice(chunk))
-            }
-        }
-    }
-}
+/// 子类：纯粹作为 TerminalView 的具体类型用（SwiftTerm 的 feed/clear 等方法在父类已实现）。
+/// 不再重写 layoutSubviews 做 feed——推送模式下 output 由 TerminalOutputBridge 直接推送。
+final class LocalTerminalView: TerminalView {}

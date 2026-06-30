@@ -29,13 +29,16 @@ import Foundation
         s.stop()
     }
 
-    @Test func output消息追加到receivedBytes() throws {
+    @Test func output消息推送给onOutput() throws {
         let s = TerminalSession()
         s.start()
         s.handleMessage(BridgeMessage(type: .hello, version: "1.0.0"))
+        // 推送模式：output 字节通过 onOutput 回调直接送出，不再缓存到 receivedBytes。
+        var captured = Data()
+        s.onOutput = { data in captured.append(data) }
         let b64 = "hi".data(using: .utf8)!.base64EncodedString()
         s.handleMessage(BridgeMessage(type: .output, data: b64))
-        #expect(s.receivedBytes == Data([0x68, 0x69]))
+        #expect(captured == Data([0x68, 0x69]))
         s.stop()
     }
 

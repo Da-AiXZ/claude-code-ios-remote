@@ -22,10 +22,12 @@ enum SessionPhase: Equatable {
 
 final class TerminalSession: ObservableObject {
     @Published var phase: SessionPhase = .idle
-    @Published var receivedBytes: Data = Data()
     @Published var statusText: String = "Idle"
     let port: UInt16
     var serverSender: ((BridgeMessage) -> Void)?
+    /// PTY output 推送回调：字节一到就调（主线程）。由 iOS 层的 TerminalOutputBridge 注入，
+    /// 直接 feed 给 SwiftTerm 的 TerminalView，不经过 SwiftUI 重渲染中转（推送模式）。
+    var onOutput: ((Data) -> Void)?
 
     private var server: TerminalServer?
 
@@ -65,8 +67,9 @@ final class TerminalSession: ObservableObject {
         case .hello:
             phase = .running
         case .output:
+            // 推送模式：字节一到直接推给 terminalView，不缓存不 drain。
             if let b64 = msg.data, let bytes = Data(base64Encoded: b64) {
-                receivedBytes.append(bytes)
+                onOutput?(bytes)
             }
         case .exit:
             let code = msg.code ?? 0
@@ -86,14 +89,6 @@ final class TerminalSession: ObservableObject {
     func sendResize(cols: Int, rows: Int) {
         let msg = BridgeMessage(type: .resize, cols: cols, rows: rows)
         serverSender?(msg)
-    }
-
-    /// 排空并返回下一块待渲染字节给 SwiftTerm。
-    func drainPendingBytes() -> Data? {
-        if receivedBytes.isEmpty { return nil }
-        let chunk = receivedBytes
-        receivedBytes = Data()
-        return chunk
     }
 
     private func handle(serverState: ServerState) {
