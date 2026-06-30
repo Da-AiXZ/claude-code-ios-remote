@@ -22,7 +22,9 @@ final class ParseContext {
 extension BridgeMessage {
     static func encode(_ msg: BridgeMessage) throws -> Data {
         let encoder = JSONEncoder()
-        encoder.outputFormatting = [.withoutEscapingSlashes, .sortedKeys]
+        // 不用 .sortedKeys：让字段按 BridgeMessage 属性声明顺序输出（type, version, cols, rows, data, ...），
+        // 与协议示例和测试期望一致；JSON 语义上字段无序，但保持稳定顺序便于调试和断言。
+        encoder.outputFormatting = .withoutEscapingSlashes
         var data = try encoder.encode(msg)
         data.append(0x0A) // \n
         return data

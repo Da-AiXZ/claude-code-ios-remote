@@ -27,7 +27,8 @@ import Foundation
     }
 
     @Test func 一个buffer解码多条消息() throws {
-        let chunk = #"{"type":"output","data":"aGk="}{"type":"exit","code":0}"# + "\n"
+        // 协议规约：每条消息以 \n 结尾。一个 TCP chunk 里粘多条消息时，中间也用 \n 分隔。
+        let chunk = #"{"type":"output","data":"aGk="}\#n{"type":"exit","code":0}\#n"#
         let msgs = try BridgeMessage.decode(Buffer: chunk.data(using: .utf8)!, ctx: ParseContext())
         #expect(msgs.count == 2)
         #expect(msgs[0].type == .output)
@@ -44,8 +45,9 @@ import Foundation
     }
 
     @Test func 解码拒绝未知类型() {
+        // 必须以 \n 结尾，否则 decode 会缓存半行等待更多数据，不会立即解析也不会抛错。
         #expect(throws: DecodingError.self) {
-            _ = try BridgeMessage.decode(Buffer: #"{"type":"bogus"}"#.data(using: .utf8)!, ctx: ParseContext())
+            _ = try BridgeMessage.decode(Buffer: #"{"type":"bogus"}\#n"#.data(using: .utf8)!, ctx: ParseContext())
         }
     }
 }
