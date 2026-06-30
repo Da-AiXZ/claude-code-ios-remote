@@ -18,8 +18,10 @@ let package = Package(
             path: "ClaudeRemote",
             // ClaudeRemoteApp.swift 带 @main，SPM library target 不允许；
             // Info.plist 不是源文件，SPM 不应处理。
-            // 这些文件由后续 xcodegen 的 app target 包含编译。
-            exclude: ["ClaudeRemoteApp.swift", "Info.plist"]
+            // Views/ 是 UIKit/SwiftUI iOS-only 代码（UIViewRepresentable 等），
+            // macOS runner 跑 swift test 时无法编译；这些由 xcodegen 的 iOS app target 编译。
+            // 核心逻辑（Message/LocalNetwork/TerminalServer/TerminalSession）跨平台，可被 macOS 测试。
+            exclude: ["ClaudeRemoteApp.swift", "Info.plist", "Views"]
         ),
         .testTarget(
             name: "ClaudeRemoteTests",

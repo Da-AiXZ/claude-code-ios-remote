@@ -97,9 +97,8 @@ final class TerminalServer {
     private func handle(connectionState: NWConnection.State, conn: NWConnection) {
         switch connectionState {
         case .ready:
-            if let endpoint = conn.endpoint as? NWEndpoint.hostPort {
-                let host = "\(endpoint.host)"
-                let port = "\(endpoint.port)"
+            // NWEndpoint 是 enum，用 pattern matching 提取 hostPort（不能用 as?）。
+            if case .hostPort(let host, let port) = conn.endpoint {
                 state = .connected(address: "\(host):\(port)")
             } else {
                 state = .connected(address: "unknown")
@@ -115,7 +114,8 @@ final class TerminalServer {
     }
 
     private func receiveLoop(_ conn: NWConnection) {
-        conn.receive { [weak self] data, _, isComplete, error in
+        // NWConnection.receive 必须显式传 minimumIncompleteLength / maximumLength。
+        conn.receive(minimumIncompleteLength: 1, maximumLength: 65536) { [weak self] data, _, isComplete, error in
             guard let self else { return }
             if let data = data, !data.isEmpty {
                 if let messages = try? BridgeMessage.decode(Buffer: data, ctx: self.parseContext) {
