@@ -31,7 +31,6 @@ final class TerminalSession: ObservableObject {
 
     init(port: UInt16 = 8080) {
         self.port = port
-        start()
     }
 
     func start() {
@@ -87,6 +86,14 @@ final class TerminalSession: ObservableObject {
     func sendResize(cols: Int, rows: Int) {
         let msg = BridgeMessage(type: .resize, cols: cols, rows: rows)
         serverSender?(msg)
+    }
+
+    /// 排空并返回下一块待渲染字节给 SwiftTerm。
+    func drainPendingBytes() -> Data? {
+        if receivedBytes.isEmpty { return nil }
+        let chunk = receivedBytes
+        receivedBytes = Data()
+        return chunk
     }
 
     private func handle(serverState: ServerState) {

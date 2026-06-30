@@ -7,6 +7,7 @@ struct ClaudeRemoteApp: App {
     var body: some Scene {
         WindowGroup {
             MainView(session: session)
+                .onAppear { session.start() }
         }
     }
 }
