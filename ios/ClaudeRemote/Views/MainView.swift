@@ -15,9 +15,9 @@ struct MainView: View {
                 .padding(.horizontal)
                 .padding(.top, 8)
 
-            // Terminal 占满中间剩余空间。不去 ignoresSafeArea(.keyboard)：
-            // 键盘弹起时 SwiftUI 自动压缩 terminal 高度，sizeChanged → onResize →
-            // bridge → claude 同步新 cols/rows，对端按新尺寸输出，不再错位。
+            // Terminal 占满中间剩余空间。键盘弹起时 SwiftUI 自动压缩 terminal 高度，
+            // 父类 layoutSubviews 检测 bounds 变化 → processSizeChange → sizeChanged →
+            // onResize → bridge → claude 同步新 cols/rows，对端按新尺寸输出。
             TerminalScreen(
                 onInput: { data in session.sendInput(data) },
                 onResize: { cols, rows in session.sendResize(cols: cols, rows: rows) },
@@ -28,10 +28,16 @@ struct MainView: View {
                 session.sendInput(seq.data(using: .utf8) ?? Data())
             })
         }
+        .background(Color.brandDark)
         .navigationTitle("ClaudeRemote")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarColorScheme(.dark, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button { showSettings = true } label: { Image(systemName: "gearshape") }
+                Button { showSettings = true } label: {
+                    Image(systemName: "gearshape")
+                        .foregroundColor(.brandOrange)
+                }
             }
         }
         .sheet(isPresented: $showSettings) {

@@ -27,7 +27,7 @@ struct KeyboardAccessory: View {
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 6)
-        .background(Color(.tertiarySystemBackground))
+        .background(Color.brandDark)
     }
 }
 
@@ -39,10 +39,11 @@ private struct KeyButtonStyle: ButtonStyle {
             .padding(.vertical, 6)
             .background(
                 RoundedRectangle(cornerRadius: 6)
-                    .fill(configuration.isPressed ? Color.accentColor.opacity(0.4) : Color(.systemBackground))
+                    .fill(configuration.isPressed ? Color.brandOrange.opacity(0.5) : Color.brandLightGray.opacity(0.1))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 6).stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 6).stroke(Color.brandMidGray.opacity(0.4), lineWidth: 1)
             )
+            .foregroundColor(.brandLight)
     }
 }

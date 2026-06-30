@@ -5,13 +5,15 @@ struct TerminalScreen: UIViewRepresentable {
     let onInput: (Data) -> Void
     let onResize: (Int, Int) -> Void
     /// 推送模式桥接：makeUIView 时把 terminalView 弱引用挂到 bridge 上，
-    /// 之后 TerminalSession.onOutput → bridge.feed → terminalView.feed 直达，
-    /// 不再靠 SwiftUI 重渲染或 layoutSubviews 主动 drain。
+    /// 之后 TerminalSession.onOutput → bridge.feed → terminalView.feed 直达。
     let outputBridge: TerminalOutputBridge
 
     func makeUIView(context: Context) -> LocalTerminalView {
         let tv = LocalTerminalView()
         tv.terminalDelegate = context.coordinator
+        // 品牌深色终端背景（#141413）+ 浅色前景（#faf9f5）
+        tv.backgroundColor = UIColor(Color.brandDark)
+        tv.foregroundColor = UIColor(Color.brandLight)
         outputBridge.terminalView = tv
         return tv
     }
@@ -45,20 +47,33 @@ struct TerminalScreen: UIViewRepresentable {
             onResize(newCols, newRows)
         }
         func hostCurrentDirectoryUpdate(source: TerminalView, directory: String?) {}
-
-        // 协议其余必需方法：当前不需要处理，给空实现以满足协议一致性。
         func requestOpenLink(source: TerminalView, link: String, params: [String: String]) {}
         func bell(source: TerminalView) {}
         func rangeChanged(source: TerminalView, startY: Int, endY: Int) {}
-
-        // OSC 52 剪贴板相关：远端 Claude Code 不需要操作本机剪贴板，给空/nil 实现。
         func clipboardCopy(source: TerminalView, content: Data) {}
         func clipboardRead(source: TerminalView) -> Data? { nil }
         func iTermContent(source: TerminalView, content: ArraySlice<UInt8>) {}
     }
 }
 
-/// 空子类。SwiftTerm 的 TerminalView 父类 layoutSubviews 已经自己处理了
-/// bounds 变化（检测 sizeChanged → 调 processSizeChange → setNeedsDisplay），
-/// 子类不需要重写。父类的 processSizeChange 是 internal，外部模块也访问不了。
-final class LocalTerminalView: TerminalView {}
+/// 空子类：SwiftTerm 的 TerminalView 父类 layoutSubviews 已自己处理 bounds 变化
+///（检测 sizeChanged → 调 processSizeChange → setNeedsDisplay），子类不需要重写。
+/// 唯一扩展：didMoveToWindow 时尝试启用 Metal GPU 渲染——这是修复渲染问题的关键。
+final class LocalTerminalView: TerminalView {
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        // view 加到 window 后尝试启用 Metal GPU 渲染。
+        // SwiftTerm 默认用 CoreGraphics（CPU 渲染）。CoreGraphics 在 iOS 16 上可能有
+        // 渲染残留/重影/滑动重叠/输入框重复等问题（setNeedsDisplay 时机或不完全 invalidate）。
+        // Metal 用 GPU 渲染（纹理图集 + GPU quad），避免 CoreGraphics 的渲染状态不一致问题。
+        // 失败则 fallback 到 CoreGraphics（SwiftTerm 自动继续，无需处理）。
+        if window != nil && !isUsingMetalRenderer {
+            do {
+                try setUseMetal(true)
+            } catch {
+                // Metal 不可用（旧设备/模拟器），静默 fallback 到 CoreGraphics。
+                print("[TerminalScreen] Metal unavailable, fallback to CoreGraphics: \(error)")
+            }
+        }
+    }
+}

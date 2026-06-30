@@ -9,19 +9,24 @@ struct ConnectionInfoView: View {
                 Image(systemName: statusIcon)
                     .foregroundColor(statusColor)
                 Text(session.statusText)
-                    .font(.system(.body, design: .monospaced))
+                    .font(.brandBody(14))
+                    .foregroundColor(.brandLight)
             }
             if case .listening(let addr) = session.phase {
-                Label("Bridge 命令：", systemImage: "terminal")
-                    .font(.system(.caption, design: .monospaced))
-                Text("  node bridge.js \(addr)")
+                Label("Bridge 命令", systemImage: "terminal")
+                    .font(.brandTitle(12))
+                    .foregroundColor(.brandMidGray)
+                Text("node bridge.js \(addr)")
                     .font(.system(.caption, design: .monospaced))
                     .textSelection(.enabled)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(.brandLightGray)
             }
         }
         .padding(12)
-        .background(RoundedRectangle(cornerRadius: 10).fill(Color(.secondarySystemBackground)))
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(Color.brandLightGray.opacity(0.08))
+        )
     }
 
     private var statusIcon: String {
@@ -37,10 +42,10 @@ struct ConnectionInfoView: View {
 
     private var statusColor: Color {
         switch session.phase {
-        case .running: return .green
-        case .failed: return .red
-        case .exited: return .orange
-        default: return .blue
+        case .running: return .brandGreen
+        case .failed: return .brandOrange
+        case .exited: return .brandOrange
+        default: return .brandBlue
         }
     }
 }
