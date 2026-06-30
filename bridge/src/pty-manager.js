@@ -11,12 +11,19 @@ export class PtyManager extends EventEmitter {
     this.args = args;
     this.cols = cols;
     this.rows = rows;
+    // 显式保证 SHELL 环境变量被设置：claude CLI 启动时检查 $SHELL，
+    // 没设置会报 "No suitable shell found. Claude CLI requires a Posix shell environment."
+    // 在 Alpine 上直接 UTM 控制台登录或 su - 切换用户时 SHELL 经常没被设置，
+    // 这里兜底设为 /bin/sh（Alpine 默认 POSIX shell），允许调用方传入的 env.SHELL 覆盖。
+    const finalEnv = { ...env };
+    if (!finalEnv.SHELL) finalEnv.SHELL = '/bin/sh';
+    if (!finalEnv.TERM) finalEnv.TERM = 'xterm-256color';
     this._proc = pty.spawn(command, args, {
       name: 'xterm-256color',
       cols,
       rows,
       cwd: cwd || process.env.HOME,
-      env,
+      env: finalEnv,
     });
     // 子进程输出：编码成 base64 后 emit
     this._proc.onData((data) => {
