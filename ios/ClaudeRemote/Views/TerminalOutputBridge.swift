@@ -19,7 +19,11 @@ final class TerminalOutputBridge {
     }
 
     /// bridge 重连或 session 重启时清空终端历史，避免旧内容残留。
+    /// SwiftTerm 的 TerminalView 没有公开的 clear() 方法，
+    /// 通过 feed ANSI 清屏序列实现：ESC[2J（清整屏）+ ESC[H（光标归位）。
     func clear() {
-        terminalView?.clear()
+        // 0x1b = ESC, [2J = 清屏, [H = 光标移动到 0,0
+        let clearSeq: [UInt8] = [0x1b, 0x5b, 0x32, 0x4a, 0x1b, 0x5b, 0x48]
+        terminalView?.feed(byteArray: ArraySlice(clearSeq))
     }
 }
